@@ -1,5 +1,7 @@
 package com.skillbox.cryptobot.bot.command;
 
+import com.skillbox.cryptobot.entity.User;
+import com.skillbox.cryptobot.service.UserService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -9,6 +11,8 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.bots.AbsSender;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.util.UUID;
+
 
 /**
  * Обработка команды начала работы с ботом
@@ -17,6 +21,8 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 @AllArgsConstructor
 @Slf4j
 public class StartCommand implements IBotCommand {
+
+    private final UserService userService;
 
     @Override
     public String getCommandIdentifier() {
@@ -30,6 +36,23 @@ public class StartCommand implements IBotCommand {
 
     @Override
     public void processMessage(AbsSender absSender, Message message, String[] arguments) {
+        User existedUser = userService.getUserByTelegramId(message.getFrom().getId());
+        if (existedUser == null) {
+            User user = new User();
+            user.setUuid(UUID.randomUUID());
+            user.setTelegramId(message.getFrom().getId());
+            user.setSubscriptionPrice(null);
+            userService.saveUser(user);
+        }
+        SendMessage answer = getSendMessage(message);
+        try {
+            absSender.execute(answer);
+        } catch (TelegramApiException e) {
+            log.error("Error occurred in /start command", e);
+        }
+    }
+
+    private static SendMessage getSendMessage(Message message) {
         SendMessage answer = new SendMessage();
         answer.setChatId(message.getChatId());
 
@@ -37,11 +60,10 @@ public class StartCommand implements IBotCommand {
                 Привет! Данный бот помогает отслеживать стоимость биткоина.
                 Поддерживаемые команды:
                  /get_price - получить стоимость биткоина
+                 /subscribe [цена] - создать новую подписку на цену
+                 /get_subscription - вывести информацию об имеющейся подписке
+                 /unsubscribe - удалить активную подписку
                 """);
-        try {
-            absSender.execute(answer);
-        } catch (TelegramApiException e) {
-            log.error("Error occurred in /start command", e);
-        }
+        return answer;
     }
 }

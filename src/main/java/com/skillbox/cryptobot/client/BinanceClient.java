@@ -1,11 +1,9 @@
 package com.skillbox.cryptobot.client;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
@@ -29,12 +27,12 @@ public class BinanceClient {
                 .build();
     }
     public double getBitcoinPrice() throws IOException {
-        log.info("Performing client call to binanceApi to get bitcoin price");
+        log.info("Performing client call to binanceApi to get Bitcoin price");
         try {
             return mapper.readTree(EntityUtils.toString(httpClient.execute(httpGet).getEntity()))
                     .path("price").asDouble();
         } catch (IOException e) {
-            log.error("Error while getting price from binance", e);
+            log.error("Error while getting price from Binance", e);
             throw e;
         }
     }

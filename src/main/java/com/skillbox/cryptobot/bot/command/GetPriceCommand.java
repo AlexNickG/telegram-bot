@@ -9,6 +9,7 @@ import org.telegram.telegrambots.extensions.bots.commandbot.commands.IBotCommand
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.bots.AbsSender;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 /**
  * Обработка команды получения текущей стоимости валюты
@@ -34,11 +35,11 @@ public class GetPriceCommand implements IBotCommand {
     public void processMessage(AbsSender absSender, Message message, String[] arguments) {
         SendMessage answer = new SendMessage();
         answer.setChatId(message.getChatId());
+        answer.setText("Текущая цена биткоина " + TextUtil.toString(service.getBitcoinPrice()) + " USD");
         try {
-            answer.setText("Текущая цена биткоина " + TextUtil.toString(service.getBitcoinPrice()) + " USD");
             absSender.execute(answer);
-        } catch (Exception e) {
-            log.error("Ошибка возникла /get_price методе", e);
+        } catch (TelegramApiException e) {
+            log.error("Ошибка при отправке сообщения пользователю. ", e);
         }
     }
 }
