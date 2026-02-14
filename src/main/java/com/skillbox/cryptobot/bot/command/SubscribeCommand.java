@@ -13,6 +13,9 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.bots.AbsSender;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * Обработка команды подписки на курс валюты
  */
@@ -27,6 +30,10 @@ public class SubscribeCommand implements IBotCommand {
 
     private final UserService userService;
 
+    private final SendMessage answer = new SendMessage();
+
+    private static final Pattern SUBSCRIBE_PATTERN = Pattern.compile("^/subscribe\\s+(\\d*\\.?\\d+)$");
+
     @Override
     public String getCommandIdentifier() {
         return "subscribe";
@@ -39,10 +46,10 @@ public class SubscribeCommand implements IBotCommand {
 
     @Override
     public void processMessage(AbsSender absSender, Message message, String[] arguments) {
-        SendMessage answer = new SendMessage();
         answer.setChatId(message.getChatId());
-        String[] text = message.getText().split(" ");
-        if (text.length < 2) {
+        Double subscriptionPrice = extractSubscriptionPrice(message.getText());
+
+        if (subscriptionPrice == null) {
             try {
                 answer.setText("Неправильный ввод цены");
                 absSender.execute(answer);
@@ -51,7 +58,7 @@ public class SubscribeCommand implements IBotCommand {
             }
             return;
         }
-        double subscriptionPrice = Double.parseDouble(text[1]);
+
         User existedUser = userService.getUserByTelegramId(message.getFrom().getId());
         if (existedUser != null) {
             existedUser.setSubscriptionPrice(subscriptionPrice);
@@ -62,7 +69,8 @@ public class SubscribeCommand implements IBotCommand {
         }
 
         double actualBitcoinPrice = service.getBitcoinPrice();
-        notifyUserService.setBitcoinPrice(actualBitcoinPrice);
+        notifyUserService.setBitcoinPrice(actualBitcoinPrice);//т.к. цена обновляется каждые две минуты, установим актуальную цену для отправки в сообщении
+
         try {
             answer.setText("Текущая цена биткоина " + TextUtil.toString(actualBitcoinPrice) + " USD");
             absSender.execute(answer);
@@ -75,6 +83,12 @@ public class SubscribeCommand implements IBotCommand {
         if (actualBitcoinPrice < subscriptionPrice) {
             notifyUserService.processUserNotification(existedUser);
         }
+    }
 
+    private Double extractSubscriptionPrice(String text) {
+        if (text == null) return null;
+        Matcher matcher = SUBSCRIBE_PATTERN.matcher(text.trim());
+        if (!matcher.matches()) return null;
+        return Double.parseDouble(matcher.group(1));
     }
 }
